@@ -3,6 +3,7 @@
   "exp_id": 1,
   "num_blocks_sep": 1,
   "num_blocks_joint": 1,
+  "include_graph": false,
   "dim": 64,
   "include_ss": true,
   "ss_separate": true,

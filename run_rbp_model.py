@@ -1,5 +1,6 @@
 import click
 import json
+from pathlib import Path
 from typing import Optional
 
 import torch
@@ -22,7 +23,8 @@ class RNARunner(pl.LightningModule):
         super(RNARunner, self).__init__()
         self.save_hyperparameters(config)
 
-        self.model = RNAModel(self.hparams["dim"], self.hparams["include_ss"], self.hparams["ss_separate"],
+        self.model = RNAModel(self.hparams["dim"], self.hparams["num_blocks_sep"], self.hparams["num_blocks_joint"],
+                              self.hparams["include_ss"], self.hparams["ss_separate"],
                               self.hparams.get("include_graph", False))
         self.criterion = nn.BCEWithLogitsLoss()
         self.valid_auc = torchmetrics.AUROC(task='binary', pos_label=1)
@@ -87,7 +89,7 @@ class RNABatchCollator:
         mask = pad_seq([data.seq.new_ones(data.seq.shape[0], dtype=torch.float32) for data in batch])
 
         edge_attr = None
-        if 'edge_attr' in batch[0].edge_attrs():
+        if batch[0].edge_attr is not None:
             edge_attr = torch.stack([F.pad(data.edge_attr.unsqueeze(-1),
                                pad=(0, seq.size(1) - data.edge_attr.size(0), 0, seq.size(1) - data.edge_attr.size(0)))
                          for data in batch]).to(dtype=torch.float32)
@@ -136,11 +138,16 @@ def cli():
 
 @cli.command()
 @click.argument('config_path', type=click.Path(exists=True))
-def train(config_path: str) -> None:
+@click.option('--no-wandb', is_flag=True, help="Use flag to not use Weights and Biases.")
+def train(config_path: str, no_wandb: bool) -> None:
     with open(config_path) as f:
         config = json.load(f)
 
-    wandb_logger = WandbLogger(name=config['name'], project=config['wandb_project'])
+    if no_wandb:
+        save_dir = Path(__file__).parent.resolve() / 'run_logs'
+        logger = CSVLogger(str(save_dir), name=config['name'])
+    else:
+        logger = WandbLogger(name=config['name'], project=config['wandb_project'])
 
     # Set random seeds
     pl.seed_everything(config['seed'], workers=True)
@@ -162,14 +169,14 @@ def train(config_path: str) -> None:
     )
 
     model_summary = ModelSummary(max_depth=5)
-    early_stopping = EarlyStopping(monitor=f'val_{config["target"]}_loss_pl', mode="min", patience=15)
+    #early_stopping = EarlyStopping(monitor=f'val_{config["target"]}_loss_pl', mode="min", patience=15)
 
     trainer = pl.Trainer(
         max_epochs=config['num_epochs'],
         gpus=torch.cuda.device_count(),
-        logger=[wandb_logger],
-        callbacks=[ model_summary, early_stopping]
-    )
+        logger=[logger],
+        callbacks=[model_summary, checkpoint_callback])
+        #callbacks=[ model_summary, early_stopping, checkpoint_callback])
 
     trainer.fit(model, datamodule=data_module)
     trainer.test(model, datamodule=data_module)
