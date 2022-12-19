@@ -8,7 +8,8 @@ $ conda env create -f environment.yml
 $ conda activate rbp
 ```
 
-Unzip the data in `data.zip`. Depending on the`include_graph` parameter in the config, the processing step will differ.
+Download the data at: https://drive.google.com/file/d/1w--8X0APEYfg-tAHOdH68COm_VOykC6n/view?usp=sharing
+Unzip it in the top level directly. Depending on the`include_graph` parameter in the config, the processing step will differ.
 If it is `True`, the distance matrix will be added to the processed dataset. This will take much longer so it is set to `False` by default.
 
 ##Training
