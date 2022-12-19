@@ -1,0 +1,17 @@
+{
+  "target": "1_PARCLIP_AGO1234_hg19",
+  "exp_id": 1,
+  "num_blocks_sep": 1,
+  "num_blocks_joint": 1,
+  "dim": 64,
+  "include_ss": true,
+  "ss_separate": true,
+  "ideeps_split": true,
+  "lr": 0.0001,
+  "batch_size": 50,
+  "num_epochs": 50,
+  "num_workers": 0,
+  "seed": 0,
+  "name": "1_baseline",
+  "wandb_project": "ml4fg"
+}
